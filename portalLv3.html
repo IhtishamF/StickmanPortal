@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>sprite animation</title>
+<style>* { padding: 0; margin: 0; } canvas {background-image: url('back3.png');; display: block; margin: 0 auto; } </style>
+</head>
+
+<body style="background-color:gray;">
+    <canvas id="canvas" width="730" height="485"></canvas>
+    <script>var context, controller, rectangle, loop; 
+var keystatus = 0;
+var newX = 0;
+//var portals = {portalLeft: false, portalUp: false, portalRight: false};
+var portals = new Array();
+var canvas = document.querySelector('canvas');
+var c = canvas.getContext('2d');
+
+//c.canvas.height = 500;
+//c.canvas.width = 750;
+
+function spriteAnimator(x,y,width,height,src, imgCount){
+  this.imgCount = imgCount;
+  this.src = src;
+  this.x = x;
+  this.y = y;
+  this.width = width;
+  this.i = 0;
+  this.height = height; 
+  this.imagesStack = [];
+  idle = new Image();
+  idle.src = "idle0.png"
+  for(var i=0; i<this.imgCount; i++){
+    this.imagesStack[i] = new Image();
+    this.imagesStack[i].src = this.src +i+'.png';
+  }
+ 
+}
+
+function platformBuilder(x,y,width,height,color){
+  this.x = x;
+  this.y = y;
+  this.width = width;
+  this.height = height; 
+  this.color = color;
+  this.i = 0;
+}
+
+
+
+rectangle = {
+
+  height:130,
+  jumping:true,
+  width:130,
+  x:615, // center of the canvas
+  x_velocity:0,
+  y:230,
+  y_velocity:0
+
+};
+var key = new Image();
+key.src = 'key.png';
+c.drawImage(key, 351, 50, 10, 10);
+
+var portalAngled = new Image();
+portalAngled.src = 'portalAngled.png';
+
+var portalUp = new Image();
+portalUp.src = 'portalUp.png';
+
+var portalDown = new Image();
+portalDown.src = 'portalDown.png';
+
+
+
+controller = {
+
+  left:false,
+  right:false,
+  up:false,
+  space:false,
+  keyListener:function(event) {
+
+    var key_state = (event.type == "keydown")?true:false;
+
+    switch(event.keyCode) {
+
+      case 65:// left key
+        controller.left = key_state;
+      break;
+      case 87:// up key
+        controller.up = key_state;
+      break;
+      case 68:// right key
+        controller.right = key_state;
+      break;
+       case 32: //space key
+        controller.space = key_state; 
+    }
+      
+  }
+
+};
+
+
+
+
+
+var zombie = new spriteAnimator(rectangle.x,rectangle.y,rectangle.width,rectangle.height, 'Run', 8);
+//var plat1 = new platformBuilder(430,298,220,20,'#4d4d4d'); //bridge
+//var plat2 = new platformBuilder(45,128,180,28,'#4d4d4d'); //left platform
+//var plat3 = new platformBuilder(517,130,213,25,'#4d4d4d'); // right platform
+//var box1  = new boxBuilder(515, 88, 40, 40,'#b92d00',4);
+
+
+platformBuilder.prototype.draw = function(c, elapsed){
+  c.lineWidth = "4";
+  c.fillStyle = this.color;
+  c.fillRect(this.x, this.y, this.width, this.height);
+  
+  }
+
+  
+spriteAnimator.prototype.draw = function(c, elapsed){
+  this.i += 10 * (elapsed/800);
+  if (this.i > (this.imgCount -1)){
+    this.i = 0;}
+    if (controller.right == true && rectangle.jumping == false){
+  c.drawImage(this.imagesStack[Math.ceil(this.i)],rectangle.x,rectangle.y,rectangle.width,rectangle.height);
+}
+ 
+ else if (controller.left == true && rectangle.jumping == false){
+  c.save();
+  c.translate(rectangle.x, rectangle.y);
+  c.scale(-1,1);
+  c.drawImage(this.imagesStack[Math.ceil(this.i)],-rectangle.width,0,rectangle.width,rectangle.height);
+  c.setTransform(1,0,0,1,0,0);
+  c.restore();
+  } 
+else {
+  c.drawImage(idle,rectangle.x,rectangle.y,rectangle.width,rectangle.height);
+}
+
+
+};
+
+function printMousePos(event) {
+  relativeX = event.clientX - canvas.offsetLeft; //location of mouseclick
+  relativeY = event.clientY - canvas.offsetTop;
+  console.log(relativeX, relativeY);
+  if (relativeX>7 && relativeX < 94 && relativeY > 212 && relativeY < 285){  
+    portals.push('portalAngled');
+    
+  } 
+  //if i click middle white above player
+   else if (relativeX > 516 && relativeX <  704 && relativeY > 243 && relativeY < 263){
+      portals.push('portalUp');
+      up = relativeX;
+  } 
+    else if (relativeX > 259 && relativeX < 515 && relativeY > 421 && relativeY < 435){
+      portals.push('portalDown');
+      down = relativeX;
+    }
+
+  // if i click top right
+  
+  // to make sure only 2 are true at a time
+    if (portals.length > 2) {
+      portals.shift();
+    }
+  }
+
+function launchPad(c, elapsed){
+      if (rectangle.y_velocity == 0){
+        rectangle.y_velocity += 5.5;
+      }
+      rectangle.y_velocity *= -5.8;
+  }
+
+
+function draw(c, elapsed){
+    c.beginPath();
+    c.clearRect(0,0, c.canvas.width, c.canvas.height);
+
+ 
+  zombie.draw(c, elapsed);
+ if (keystatus < 1){
+  var key = new Image();
+key.src = 'key.png';
+c.drawImage(key, 321, 70, 52, 37);
+}
+
+if (portals.includes('portalUp')){
+  c.drawImage(portalUp, up-40, 230, 92,50);
+}
+if (portals.includes('portalAngled')){
+  c.drawImage(portalAngled, 3, 225, 100,55);
+}
+if (portals.includes('portalDown')){
+  c.drawImage(portalDown, down-40, 410, 95,50);
+}
+
+
+ if (rectangle.x > 475 && rectangle.x < 505 && rectangle.y < 296 && rectangle.y > 285){
+    launchPad();
+  }
+   
+  
+    c.closePath();
+}
+
+var then = Date.now();
+var now = 0; 
+var elapsed = 0;
+
+function loop(){
+  now = Date.now();
+    elapsed = now - then;
+      then = now; 
+      
+      
+     //character passing portalleft and portal right 
+  
+if (rectangle.x >195.8 && rectangle.y < -60 && rectangle.x < 230){
+  keystatus += 1;
+}
+  
+  
+
+
+  //character passing through portalUp and portalAngled
+
+if (portals.includes('portalUp') && portals.includes('portalAngled')){
+    let upgap = up - rectangle.x;
+    if (upgap > 25 && upgap < 90 && rectangle.y < 218 && rectangle.y > 160){
+    rectangle.x = 15;
+    rectangle.y = 115;
+    launchPad();
+    controller.left = false;
+      rectangle.x_velocity += 2.8;
+      rectangle.x_velocity *= 2;
+
+  } else if (rectangle.x > 0 && rectangle.y > 120 && rectangle.y < 140 && rectangle.x < 18){
+    //rectangle.x_velocity *= 0.5
+    rectangle.x = upgap -20;
+    rectangle.y = 220;
+  }
+}
+
+if (portals.includes('portalDown') && portals.includes('portalUp')){
+  let downgap = down - rectangle.x;
+  if (downgap > 33 && downgap < 88 && rectangle.y > 270 && rectangle.y < 310){
+    rectangle.x = up -60;
+    rectangle.y = 220;
+  }
+  else if ((up - rectangle.x) > 25 && (up - rectangle.x) < 90 && rectangle.y < 218 && rectangle.y > 160){
+    rectangle.x = down - 40;
+    rectangle.y = 290;
+    launchPad();
+    rectangle.y_velocity *= 0.7;
+  }
+}
+
+if (portals.includes('portalDown') && portals.includes('portalAngled')){
+  let downgap = down - rectangle.x;
+  if (downgap > 33 && downgap < 88 && rectangle.y > 270 && rectangle.y < 300){
+    rectangle.x = 15;
+    rectangle.y = 115;
+    launchPad();
+    controller.left = false;
+      rectangle.x_velocity += 2.5;
+      rectangle.x_velocity *= 2;
+} else if (rectangle.x > 0 && rectangle.y > 120 && rectangle.y < 140 && rectangle.x < 18){
+  rectangle.x = down - 40;
+    rectangle.y = 290;
+    launchPad();
+}
+}
+
+
+
+
+  if (controller.up && rectangle.jumping == false && controller.space == false) {
+
+    rectangle.y_velocity -= 16;
+    rectangle.jumping = true;
+
+  }
+
+  if (controller.left) {
+
+    rectangle.x_velocity -= 0.50;
+
+  }
+
+  if (controller.right) {
+
+    rectangle.x_velocity += 0.50;
+
+  }
+  
+
+  if(rectangle.x < 212 && rectangle.y < 300 && rectangle.y > 220 || rectangle.x < 0) {
+      controller.left = false;
+      rectangle.x_velocity *= -1;
+  }
+  if(rectangle.x > 618 && rectangle.y < 300 || rectangle.x > 435 && rectangle.y > 29 && rectangle.y < 208) {
+      controller.right = false;
+      rectangle.x_velocity *= -1;
+  }
+
+    
+  rectangle.y_velocity += 1.5; // gravity
+  
+  // box gravity
+ 
+
+  rectangle.x += rectangle.x_velocity;
+  rectangle.y += rectangle.y_velocity;
+  rectangle.x_velocity *= 0.90;// friction
+  rectangle.y_velocity *= 0.90;// friction
+
+
+//to make sure char can jump on platform and not float in the air  
+  //main bottom platform
+  if (rectangle.x > 211 && rectangle.x <618 && rectangle.y > 296) {
+
+    rectangle.jumping = false;
+    rectangle.y = 296;
+    rectangle.y_velocity = 0;
+  
+  }
+  //elevated platform
+  else if (rectangle.x < 200 && rectangle.y > 130  && rectangle.x > 74 && rectangle.y < 170) {
+
+    rectangle.jumping = false;
+    rectangle.y = 130;
+    rectangle.y_velocity = 0;
+  
+  } 
+
+  //top right platform
+
+  else if (rectangle.x > 450 && rectangle.y > 29  && rectangle.x < 618 && rectangle.y < 70) {
+
+    rectangle.jumping = false;
+    rectangle.y = 29;
+    rectangle.y_velocity = 0;
+  
+  } 
+  // top left platform
+  else if (rectangle.x <20 && rectangle.y > 125 && !portals.includes(portalAngled)){
+    rectangle.x = 20;
+  }
+  //top right platform bottom ceiling
+  if (rectangle.x > 450 && rectangle.x < 618 && rectangle.y < 215 && rectangle.y > 130){
+    rectangle.y_velocity *= -0.32;
+  }
+
+  
+
+  //elevated platform left side wall
+  if(rectangle.x > 74 && rectangle.y >130 && rectangle.x <150){
+    controller.left = false;
+    rectangle.x = 74;
+  }
+
+   
+  if (rectangle.x > 20 && rectangle.x < 74 && rectangle.y > 500 || rectangle.y > 501){
+    alert('you died!')
+    document.location.reload();
+    rectangle.x = 500;
+    rectangle.y = 0;
+  }
+ 
+  if (keystatus > 0 && rectangle.x > 589 && rectangle.y <30 && rectangle.y >13){
+    alert('You beat the game!!');
+    window.location.reload();
+    rectangle.x = 615;
+    rectangle.y = 230;
+  }
+ 
+  
+  draw(c, elapsed);
+  window.requestAnimationFrame(loop);
+}
+
+
+window.addEventListener("keydown", controller.keyListener)
+window.addEventListener("keyup", controller.keyListener);
+document.addEventListener("click", printMousePos);
+//setInterval(loop, 90)
+window.requestAnimationFrame(loop);</script>
+    
+</body>
+</html> 
